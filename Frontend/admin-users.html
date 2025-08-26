@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <title>RentCar Admin Panel</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f9f9f9; margin:0; }
+    header { display:flex; justify-content: space-between; padding: 10px 20px; background:white; align-items:center; border-bottom:1px solid #e6e6e6; }
+    .logo { font-size: 24px; font-weight: bold; text-decoration:none; color:black; }
+    nav a { margin-left: 15px; color:black; cursor:pointer; text-decoration:none; font-weight:600; }
+    main { padding:20px; }
+    table { width:100%; border-collapse: collapse; margin-top:20px; background:white; border-radius:8px; overflow:hidden; }
+    th, td { padding:12px; border-bottom:1px solid #eee; text-align:left; }
+    th { background:#34495e; color:white; }
+    tr:hover { background:#f1f1f1; }
+    button { padding:6px 10px; border:none; cursor:pointer; border-radius:4px; }
+    .delete-btn { background:#e74c3c; color:white; }
+    .logo {
+    transition: color 0.2s ease, transform 0.2s ease;
+    }
+    .logo:hover {
+    color: #1d577e;
+    transform: scale(1.05);
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="HTMLPage2.html" class="logo">RentCar</a>
+  <nav>
+    <a id="profile-btn" href="profile.html">Profile</a>
+    <a id="logout-btn">Log Out</a>
+  </nav>
+</header>
+
+<main>
+  <h2>Admin Panel - Kullanıcı Yönetimi</h2>
+  <table id="user-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Kullanıcı Adı</th>
+        <th>İsim</th>
+        <th>Soyisim</th>
+        <th>Email</th>
+        <th>Telefon</th>
+        <th>Doğum Tarihi</th>
+        <th>Aktif</th>
+        <th>İşlem</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <h2 style="margin-top:40px;">Admin Panel - Kiralama Yönetimi</h2>
+  <table id="rent-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Müşteri</th>
+        <th>Araç</th>
+        <th>Başlangıç</th>
+        <th>Bitiş</th>
+        <th>Toplam Ücret</th>
+        <th>Ödeme Yöntemi</th>
+        <th>Aktif</th>
+        <th>İşlem</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</main>
+
+<script>
+const logoutBtn = document.getElementById('logout-btn');
+const userTableBody = document.querySelector('#user-table tbody');
+const rentTableBody = document.querySelector('#rent-table tbody');
+const token = localStorage.getItem('token');
+
+if (!token) {
+    alert('Lütfen giriş yapın!');
+    window.location.href = 'HTMLPage2.html';
+} else {
+    const decoded = JSON.parse(atob(token.split('.')[1]));
+    const roles = decoded.roles || decoded.role || decoded.authorities || decoded.authority;
+    let isAdmin = false;
+    if (roles) {
+        if (typeof roles === 'string') isAdmin = roles.includes('ADMIN');
+        else if (Array.isArray(roles)) isAdmin = roles.some(r => String(r).includes('ADMIN'));
+    }
+    if (!isAdmin) {
+        alert('Admin yetkiniz yok!');
+        window.location.href = 'HTMLPage2.html';
+    }
+}
+
+logoutBtn.addEventListener('click', () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('customerId');
+    localStorage.removeItem('role');
+    alert('Çıkış yapıldı');
+    window.location.href = 'HTMLPage2.html';
+});
+
+async function loadUsers() {
+    const res = await fetch('http://localhost:8080/admin/customers', {
+        headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const data = await res.json();
+    const currentAdminId = Number(localStorage.getItem('customerId'));
+    const filteredData = data.filter(user => user.id !== currentAdminId);
+
+    userTableBody.innerHTML = '';
+    filteredData.forEach(user => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${user.id}</td>
+            <td>${escapeHtml(user.username)}</td>
+            <td>${escapeHtml(user.customerName)}</td>
+            <td>${escapeHtml(user.customerSurname)}</td>
+            <td>${escapeHtml(user.email)}</td>
+            <td>${escapeHtml(user.phoneNumber)}</td>
+            <td>${user.dateOfBirth || ''}</td>
+            <td>${user.isActive ? 'Evet' : 'Hayır'}</td>
+            <td>
+                <button class="delete-btn" data-id="${user.id}">Sil</button>
+            </td>
+        `;
+        userTableBody.appendChild(tr);
+
+        tr.querySelector('.delete-btn').addEventListener('click', () => {
+            if (!confirm('Bu kullanıcıyı silmek istediğinize emin misiniz?')) return;
+            fetch(`http://localhost:8080/admin/customers/${user.id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': 'Bearer ' + token }
+            })
+            .then(res => {
+                if (res.ok) {
+                    alert('Kullanıcı silindi');
+                    loadUsers();
+                } else {
+                    alert('Kullanıcı silinemedi. Stat: ' + res.status);
+                }
+            });
+        });
+    });
+}
+
+// Kiralamaları yükle
+async function loadRents() {
+    const res = await fetch('http://localhost:8080/admin/rents', {
+        headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const data = await res.json();
+
+    rentTableBody.innerHTML = '';
+    data.forEach(rent => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${rent.id}</td>
+            <td>${escapeHtml(rent.customerName)} ${escapeHtml(rent.customerSurname)}</td>
+            <td>${escapeHtml(rent.carName)}</td>
+            <td>${rent.startDate}</td>
+            <td>${rent.endDate}</td>
+            <td>${rent.totalPrice} TL</td>
+            <td>${escapeHtml(rent.paymentMethod)}</td>
+            <td>${rent.isActive ? 'Evet' : 'Hayır'}</td>
+            <td>
+                <button class="delete-btn" data-id="${rent.id}">Sil</button>
+            </td>
+        `;
+        rentTableBody.appendChild(tr);
+
+        tr.querySelector('.delete-btn').addEventListener('click', () => {
+            if (!confirm('Bu kiralamayı silmek istediğinize emin misiniz?')) return;
+            fetch(`http://localhost:8080/admin/rents/${rent.id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': 'Bearer ' + token }
+            })
+            .then(res => {
+                if (res.ok) {
+                    alert('Kiralama silindi');
+                    loadRents();
+                } else {
+                    alert('Kiralama silinemedi. Stat: ' + res.status);
+                }
+            });
+        });
+    });
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    loadUsers();
+    loadRents();
+});
+</script>
+
+</body>
+</html>

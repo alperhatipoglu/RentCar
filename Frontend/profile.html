@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>RentCar - Profil</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f9f9f9; margin: 0; padding: 0; }
+    header { display: flex; justify-content: space-between; padding: 10px 20px; background: white; border-bottom: 1px solid #e6e6e6; align-items: center; }
+    .logo { font-size: 24px; font-weight: bold; color: black; text-decoration: none; }
+    nav a { margin-left: 15px; color: black; cursor: pointer; text-decoration: none; font-weight: 600; }
+    main { max-width: 500px; margin: 40px auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    main h2 { text-align: center; margin-bottom: 20px; }
+    main p { margin: 8px 0; font-size: 16px; }
+    button { display: block; margin: 20px auto 0; padding: 8px 12px; border: none; background: #34495e; color: white; cursor: pointer; border-radius: 4px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="HTMLPage2.html" class="logo">RentCar</a>
+  <nav>
+    <a id="logout-btn">Logout</a>
+  </nav>
+</header>
+
+<main>
+  <h2>Profil Bilgileri</h2>
+  <p><strong>Kullanıcı Adı:</strong> <span id="profile-username"></span></p>
+  <p><strong>İsim:</strong> <span id="profile-name"></span></p>
+  <p><strong>Soyisim:</strong> <span id="profile-surname"></span></p>
+  <p><strong>Email:</strong> <span id="profile-email"></span></p>
+  <p><strong>Telefon:</strong> <span id="profile-phone"></span></p>
+  <p><strong>Doğum Tarihi:</strong> <span id="profile-dob"></span></p>
+  <p><strong>Kayıt Tarihi:</strong> <span id="profile-regdate"></span></p>
+</main>
+
+<script>
+  const logoutBtn = document.getElementById('logout-btn');
+
+  logoutBtn.addEventListener('click', () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('customerId');
+    localStorage.removeItem('role');
+    alert('Çıkış yapıldı');
+    window.location.href = 'HTMLPage2.html';
+  });
+
+  function parseJwt(token) {
+    try { return JSON.parse(atob(token.split('.')[1])); } 
+    catch { return {}; }
+  }
+
+  function isTokenExpired(token) {
+    const decoded = parseJwt(token);
+    if (!decoded.exp) return true;
+    return Date.now() > decoded.exp * 1000;
+  }
+
+  function formatDate(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('tr-TR');
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    const token = localStorage.getItem('token');
+    const customerId = localStorage.getItem('customerId');
+
+    if (!token || !customerId || isTokenExpired(token)) {
+      alert('Lütfen giriş yapın.');
+      window.location.href = 'HTMLPage2.html';
+      return;
+    }
+
+    fetch(`http://localhost:8080/customers/${customerId}`, {
+      headers: { 'Authorization': 'Bearer ' + token }
+    })
+    .then(res => {
+        if (!res.ok) throw new Error('Profil bilgileri yüklenemedi. Stat: ' + res.status);
+        return res.json();
+    })
+    .then(data => {
+        document.getElementById('profile-username').textContent = data.username || '';
+        document.getElementById('profile-name').textContent = data.customerName || '';
+        document.getElementById('profile-surname').textContent = data.customerSurname || '';
+        document.getElementById('profile-email').textContent = data.email || '';
+        document.getElementById('profile-phone').textContent = data.phoneNumber || '';
+        document.getElementById('profile-dob').textContent = formatDate(data.dateOfBirth);
+        document.getElementById('profile-regdate').textContent = formatDate(data.registrationDate);
+
+        localStorage.setItem('role', data.role || '');
+    })
+    .catch(err => {
+        console.error('Profil hatası:', err);
+        alert('Profil bilgileri yüklenemedi.');
+        window.location.href = 'HTMLPage2.html';
+    });
+  });
+</script>
+
+</body>
+</html>

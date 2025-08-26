@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>RentCar - Ödeme</title>
+<style>
+body { font-family: Arial, sans-serif; background:#f9f9f9; margin:0; padding:0; }
+header { display:flex; justify-content: space-between; padding:10px 20px; background:white; align-items:center; border-bottom:1px solid #e6e6e6;}
+.logo { font-size:24px; font-weight:bold; color:black; text-decoration:none;}
+nav a { margin-left:15px; color:black; cursor:pointer; text-decoration:none; font-weight:600;}
+.container { display:flex; gap:20px; flex-wrap:wrap; max-width:900px; margin:30px auto; background:white; padding:20px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.1);}
+.left, .right { flex:1; min-width:280px;}
+img { width:100%; border-radius:6px; }
+h2 { text-align:center; margin-bottom:20px; }
+form label { display:block; margin:6px 0 4px; font-weight:600;}
+form input, form select { width:100%; padding:8px; margin-bottom:12px; box-sizing:border-box; border-radius:6px; border:1px solid #ccc;}
+button { width:100%; padding:10px; border:none; border-radius:6px; background:#27ae60; color:white; font-weight:600; cursor:pointer;}
+.msg { margin-top:12px; font-size:13px; }
+.msg.ok { color:#1e7d37; }
+.msg.err { color:#b80000; }
+.detail { margin-bottom:10px; }
+@media(max-width:700px){.container{flex-direction:column;}}
+.logo {
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+.logo:hover {
+  color: #1d577e;
+  transform: scale(1.05);
+}
+
+</style>
+</head>
+<body>
+
+<header>
+  <a href="HTMLPage2.html" class="logo">RentCar</a>
+  <nav>
+    <a id="login-btn">Login</a>
+    <a id="logout-btn" style="display:none;">Log Out</a>
+  </nav>
+</header>
+
+<div class="container">
+  <div class="left">
+    <h2>Ödeme Bilgileri</h2>
+    <form id="payment-form">
+      <label for="card-name">Kart Sahibinin Adı</label>
+      <input type="text" id="card-name" placeholder="Ad Soyad" maxlength="50" >
+
+      <label for="card-email">Email</label>
+      <input type="email" id="card-email" placeholder="example@mail.com" >
+
+     <label for="customer-address">Adres</label>
+<textarea id="customer-address" placeholder="Adresinizi giriniz" maxlength="200"style="width:100%; height:80px; padding:8px; border-radius:6px; border:1px solid #ccc; box-sizing:border-box;"></textarea>
+
+
+
+      <label for="payment-method">Ödeme Yöntemi</label>
+      <select id="payment-method" >
+        <option value="" disabled selected>Seçiniz</option>
+        <option value="Visa">Visa</option>
+        <option value="Mastercard">Mastercard</option>
+      </select>
+
+      <label for="card-number">Kart Numarası</label>
+      <input type="text" id="card-number" placeholder="XXXX-XXXX-XXXX-XXXX" maxlength="19">
+
+      <div style="display:flex; gap:10px;">
+        <div style="flex:1;">
+          <label for="expiry">Son Kullanma Tarihi</label>
+          <input type="text" id="expiry" placeholder="MM/YY" maxlength="5">
+        </div>
+        <div style="flex:1;">
+          <label for="cvv">CVV</label>
+          <input type="text" id="cvv" placeholder="123" maxlength="3">
+        </div>
+      </div>
+
+      <button type="submit">Ödemeyi Yap</button>
+      <div id="pay-msg" class="msg"></div>
+    </form>
+  </div>
+
+  <div class="right">
+    <h2>Araç Detayları</h2>
+    <img id="car-image" src="" alt="Araç Resmi">
+    <div class="detail"><strong>Araç:</strong> <span id="car-name"></span></div>
+    <div class="detail"><strong>Başlangıç:</strong> <span id="start-date"></span></div>
+    <div class="detail"><strong>Bitiş:</strong> <span id="end-date"></span></div>
+    <div class="detail"><strong>Toplam Fiyat:</strong> <span id="total-price"></span>₺</div>
+  </div>
+</div>
+
+<script>
+const loginBtn = document.getElementById('login-btn');
+const logoutBtn = document.getElementById('logout-btn');
+
+function parseJwt(token){try{return JSON.parse(atob(token.split('.')[1]));}catch{return{};}}
+function isTokenExpired(token){const decoded=parseJwt(token);return !decoded.exp || Date.now() > decoded.exp*1000;}
+
+const token = localStorage.getItem('token');
+if(token && !isTokenExpired(token)){ loginBtn.style.display='none'; logoutBtn.style.display='inline'; }
+
+logoutBtn.addEventListener('click', ()=>{
+    localStorage.removeItem('token');
+    localStorage.removeItem('customerId');
+    localStorage.removeItem('role');
+    alert('Çıkış yapıldı');
+    window.location.href='HTMLPage2.html';
+});
+loginBtn.addEventListener('click', ()=>{window.location.href='HTMLPage2.html';});
+
+const urlParams = new URLSearchParams(window.location.search);
+const carId = Number(urlParams.get('carId'));
+const customerId = Number(urlParams.get('customerId'));
+const startDate = urlParams.get('startDate');
+const endDate = urlParams.get('endDate');
+
+document.getElementById('start-date').textContent = startDate;
+document.getElementById('end-date').textContent = endDate;
+
+let carPrice = 0;
+
+fetch(`http://localhost:8080/cars/${carId}`)
+.then(res => { if(!res.ok) throw new Error('Araç bilgisi alınamadı'); return res.json(); })
+.then(car => {
+    document.getElementById('car-name').textContent = car.carName || '';
+    document.getElementById('car-image').src = car.imageUrl || '';
+    carPrice = car.price || 0;
+
+    const sd = new Date(startDate);
+    const ed = new Date(endDate);
+    const days = Math.ceil((ed - sd)/(1000*60*60*24)) + 1;
+    document.getElementById('total-price').textContent = carPrice * days;
+})
+.catch(err => { console.error(err); alert('Araç bilgisi alınamadı: ' + err.message); });
+
+const cardNumberInput = document.getElementById('card-number');
+cardNumberInput.addEventListener('input', e => {
+    let v = e.target.value.replace(/\D/g,'').substring(0,16);
+    e.target.value = v.match(/.{1,4}/g)?.join('-') || '';
+});
+
+const expiryInput = document.getElementById('expiry');
+expiryInput.addEventListener('input', e => {
+    let v = e.target.value.replace(/\D/g,'').substring(0,4);
+    if(v.length >=3) v = v.substring(0,2)+'/'+v.substring(2,4);
+    e.target.value = v;
+});
+
+document.getElementById('payment-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const msgEl = document.getElementById('pay-msg');
+    msgEl.className = 'msg';
+    msgEl.textContent = '';
+
+    if (!token || isTokenExpired(token)) { 
+        alert('Lütfen tekrar giriş yapın.'); 
+        window.location.href = 'HTMLPage2.html'; 
+        return; 
+    }
+
+    const role = String(localStorage.getItem('role') || '');
+    if(!role.includes('ROLE_CUSTOMER')) { 
+        msgEl.classList.add('err'); 
+        msgEl.textContent = 'Sadece müşteri hesabı ile ödeme yapabilirsiniz.'; 
+        return; 
+    }
+
+    const paymentData = { 
+        carId,
+        customerId,
+        startDate,
+        endDate,
+        paymentMethod: document.getElementById('payment-method').value.trim(),
+        paymentMethodExpiry: document.getElementById('expiry').value,
+        customerEmail: document.getElementById('card-email').value.trim(),
+        customerAddress: document.getElementById('customer-address').value.trim(),
+        cardName: document.getElementById('card-name').value.trim(),
+        cvv: document.getElementById('cvv').value,
+        cardNumber: document.getElementById('card-number').value.replace(/-/g,'') 
+
+    };
+
+    
+    if(!paymentData.cardNumber || paymentData.cardNumber.length !== 16){
+        msgEl.classList.add('err');
+        msgEl.textContent = 'Kart numarası 16 haneli olmalıdır.';
+        return;
+    }
+
+    try {
+        const res = await fetch('http://localhost:8080/rent/create', {
+            method:'POST',
+            headers:{ 
+                'Content-Type':'application/json', 
+                'Authorization':'Bearer '+token 
+            },
+            body: JSON.stringify(paymentData)
+        });
+
+       const data = await res.json().catch(() => ({}));
+
+if(res.ok){
+    const modal = document.getElementById('payment-modal');
+    const modalMsg = document.getElementById('modal-msg');
+    modalMsg.textContent = data.message; 
+    modal.style.display = 'flex';
+
+    document.getElementById('modal-ok-btn').onclick = () => {
+        modal.style.display = 'none';
+        window.location.href = 'HTMLPage2.html'; 
+    };
+
+} else {
+    msgEl.classList.add('err');
+    msgEl.textContent = data.message || 'Bilinmeyen hata';
+}
+
+
+    } catch(err) {
+        msgEl.className = 'msg err';
+        msgEl.textContent = 'Sunucu hatası: ' + err.message;
+    }
+});
+
+
+</script>
+
+<div id="payment-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); justify-content:center; align-items:center; z-index:1000;">
+  <div style="background:white; padding:30px; border-radius:8px; max-width:400px; width:90%; text-align:center; box-shadow:0 2px 10px rgba(0,0,0,0.3);">
+    <p id="modal-msg" style="font-size:18px; font-weight:bold; margin-bottom:20px;"></p>
+    <button id="modal-ok-btn" style="padding:10px 20px; border:none; border-radius:6px; background:#27ae60; color:white; font-weight:600; cursor:pointer;">Tamam</button>
+  </div>
+</div>
+</body>
+</html>

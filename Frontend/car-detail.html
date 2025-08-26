@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Araç Detay</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#f9f9f9; margin:0; padding:0; }
+    header {
+      display: flex; justify-content: space-between; padding: 10px 20px;
+      background: white; color: black; align-items: center; border-bottom: 1px solid #e6e6e6;
+    }
+    .logo { font-size: 24px; font-weight: bold; color: black; text-decoration: none; }
+    nav a { margin-left: 15px; color: black; cursor: pointer; text-decoration: none; font-weight: 600; }
+    .container { display:flex; gap:30px; flex-wrap:wrap; max-width:900px; margin:20px auto; background:white; padding:20px; border-radius:8px; }
+    .left { flex:1; min-width:250px; }
+    .right { flex:1; min-width:250px; }
+    img { width:100%; border-radius:6px; }
+    .rent-box { margin-top:16px; padding:12px; background:#f5f8ff; border:1px solid #e4ecff; border-radius:8px; }
+    .rent-box label { display:block; font-size:13px; margin:6px 0 4px; }
+    .rent-box input[type="date"] { width:100%; padding:8px; box-sizing:border-box; border:1px solid #ccc; border-radius:6px; }
+    .row { display:flex; gap:12px; }
+    .row > div { flex:1; }
+    button { padding:10px 15px; margin-top:10px; border:none; border-radius:6px; cursor:pointer; }
+    #rent-btn { background:#27ae60; color:white; width:100%; }
+    .msg { margin-top:10px; font-size:13px; }
+    .msg.ok { color:#1e7d37; }
+    .msg.err { color:#b80000; }
+.logo {
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+.logo:hover {
+  color: #1d577e;
+  transform: scale(1.05);
+}
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="HTMLPage2.html" class="logo">RentCar</a>
+  <nav>
+    <a id="login-btn">Login</a>
+    <a id="logout-btn" style="display:none;">Log Out</a>
+  </nav>
+</header>
+
+<div class="container">
+  <div class="left">
+    <img id="car-image" src="" alt="Araç Resmi">
+  </div>
+  <div class="right">
+    <h2 id="car-name"></h2>
+    <p><strong>Marka:</strong> <span id="car-brand"></span></p>
+    <p><strong>Model:</strong> <span id="car-model"></span></p>
+    <p><strong>Yıl:</strong> <span id="car-year"></span></p>
+    <p><strong>Fiyat:</strong> <span id="car-price"></span>₺ / gün</p>
+    <p><strong>Renk:</strong> <span id="car-color"></span></p>
+    <p><strong>Yakıt:</strong> <span id="car-fuel"></span></p>
+    <p><strong>Vites:</strong> <span id="car-transmission"></span></p>
+    <p><strong>Koltuk:</strong> <span id="car-seats"></span></p>
+    <p><strong>Plaka:</strong> <span id="car-license"></span></p>
+
+    <div class="rent-box">
+      <div class="row">
+        <div>
+          <label for="startDate">Başlangıç Tarihi</label>
+          <input type="date" id="startDate">
+        </div>
+        <div>
+          <label for="endDate">Bitiş Tarihi</label>
+          <input type="date" id="endDate">
+        </div>
+      </div>
+      <button id="rent-btn">Kirala</button>
+      <div id="rent-msg" class="msg"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const loginBtn = document.getElementById('login-btn');
+  const logoutBtn = document.getElementById('logout-btn');
+
+  function parseJwt(token) {
+    try { return JSON.parse(atob(token.split('.')[1])); } catch { return {}; }
+  }
+  function isTokenExpired(token) {
+    const decoded = parseJwt(token);
+    if (!decoded.exp) return true;
+    return Date.now() > decoded.exp * 1000;
+  }
+
+  const token = localStorage.getItem('token');
+  if (token && !isTokenExpired(token)) {
+    loginBtn.style.display = 'none';
+    logoutBtn.style.display = 'inline';
+  }
+
+  logoutBtn.addEventListener('click', () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('customerId');
+    localStorage.removeItem('role');
+    alert('Çıkış yapıldı');
+    window.location.href = 'HTMLPage2.html';
+  });
+
+  loginBtn.addEventListener('click', () => {
+    window.location.href = 'HTMLPage2.html'; 
+  });
+
+  function getQueryParam(param) {
+    return new URLSearchParams(window.location.search).get(param);
+  }
+  function setDateMins() {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth()+1).padStart(2,'0');
+    const d = String(today.getDate()).padStart(2,'0');
+    const min = `${y}-${m}-${d}`;
+    document.getElementById('startDate').setAttribute('min', min);
+    document.getElementById('endDate').setAttribute('min', min);
+  }
+
+  const carId = Number(getQueryParam('id'));
+  if (!carId) {
+    alert('Araç ID alınamadı!');
+    window.location.href = 'HTMLPage2.html';
+  } else {
+    fetch(`http://localhost:8080/cars/${carId}`)
+      .then(res => { if (!res.ok) throw new Error('Araç bilgileri yüklenemedi. Stat: ' + res.status); return res.json(); })
+      .then(car => {
+        document.getElementById('car-image').src = car.imageUrl || '';
+        document.getElementById('car-name').textContent = car.carName || '';
+        document.getElementById('car-brand').textContent = car.brand || '';
+        document.getElementById('car-model').textContent = car.model || '';
+        document.getElementById('car-year').textContent = car.year || '';
+        document.getElementById('car-price').textContent = (car.price != null ? car.price : '');
+        document.getElementById('car-color').textContent = car.color || '';
+        document.getElementById('car-fuel').textContent = car.fuelType || '';
+        document.getElementById('car-transmission').textContent = car.transmission || '';
+        document.getElementById('car-seats').textContent = car.seats || '';
+        document.getElementById('car-license').textContent = car.licensePlate || '';
+      })
+      .catch(err => {
+        console.error(err);
+        alert('Araç bilgileri yüklenemedi: ' + err.message);
+      });
+  }
+
+  setDateMins();
+  document.getElementById('rent-btn').addEventListener('click', rentCar);
+
+  function rentCar() {
+    const msgEl = document.getElementById('rent-msg');
+    msgEl.className = 'msg';
+    msgEl.textContent = '';
+
+    const tk = localStorage.getItem('token');
+    const customerId = Number(localStorage.getItem('customerId'));
+    const role = String(localStorage.getItem('role') || '');
+
+    if (!tk || isTokenExpired(tk)) {
+      alert('Lütfen tekrar giriş yapınız.');
+      window.location.href = 'HTMLPage2.html';
+      return;
+    }
+    if (!role.includes('ROLE_CUSTOMER')) {
+      msgEl.classList.add('err');
+      msgEl.textContent = 'Sadece müşteri hesabı ile kiralama yapılabilir.';
+      return;
+    }
+
+    const startDate = document.getElementById('startDate').value;
+    const endDate   = document.getElementById('endDate').value;
+
+    if (!startDate || !endDate) {
+      msgEl.classList.add('err');
+      msgEl.textContent = 'Lütfen başlangıç ve bitiş tarihlerini seçin.';
+      return;
+    }
+    if (endDate <= startDate) {
+      msgEl.classList.add('err');
+      msgEl.textContent = 'Bitiş tarihi, başlangıç tarihinden sonra olmalıdır.';
+      return;
+    }
+    
+const paymentUrl = `payment.html?carId=${carId}&customerId=${customerId}&startDate=${startDate}&endDate=${endDate}`;
+window.location.href = paymentUrl;
+
+    
+  }
+</script>
+
+</body>
+</html>

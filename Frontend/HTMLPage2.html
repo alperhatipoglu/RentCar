@@ -1,0 +1,647 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <title>RentCar - Araç Kiralama</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f9f9f9;
+      margin: 0;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 20px;
+      background: white;
+      color: black;
+      align-items: center;
+      border-bottom: 1px solid #e6e6e6;
+    }
+    .logo {
+      font-size: 24px;
+      font-weight: bold;
+      color: black;
+      text-decoration: none;
+    }
+    nav a {
+      margin-left: 15px;
+      color: black;
+      cursor: pointer;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .car-list {
+      display: flex;
+      flex-wrap: wrap;
+      padding: 20px;
+      gap: 20px;
+      justify-content: center;
+    }
+    .car-card {
+      background: white;
+      border-radius: 8px;
+      width: 250px;
+      padding: 15px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+      text-align: center;
+    }
+    .car-card img {
+      width: 100%;
+      height: 160px;
+      object-fit: cover;
+      border-radius: 6px;
+    }
+    #login-modal, #register-modal {
+      display: none;
+      position: fixed;
+      top: 15%;
+      right: 5%;
+      background: white;
+      border: 1px solid lightgray;
+      border-radius: 8px;
+      padding: 20px;
+      z-index: 1000;
+      max-width: 320px;
+    }
+    #login-modal input, #register-modal input {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0;
+      box-sizing: border-box;
+    }
+    #login-modal button, #register-modal button {
+      padding: 8px 12px;
+      margin-right: 5px;
+      cursor: pointer;
+    }
+    #add-car-form {
+      max-width: 400px;
+      margin: 20px auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      display: none;
+    }
+    #add-car-form input {
+      width: 100%;
+      padding: 8px;
+      margin: 8px 0;
+      box-sizing: border-box;
+    }
+    #add-car-form button {
+      padding: 10px 15px;
+      background: #34495e;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    .search-container {
+      text-align: center;
+      margin: 18px 0;
+    }
+    #search-box {
+      padding: 10px 12px;
+      width: 320px;
+      max-width: calc(100% - 40px);
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-size: 14px;
+    }
+    @media (max-width: 600px) {
+      .car-card { width: 100%; max-width: 420px; }
+    }
+
+
+    /* Araç kartlarına hover efekti */
+.car-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.car-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 15px rgba(0,0,0,0.15);
+}
+
+/* Logo hover efekti */
+.logo {
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+.logo:hover {
+  color: #1d577e;
+  transform: scale(1.05);
+}
+
+/* Profile modal */
+#profile-modal {
+  display: none;
+  position: fixed;
+  top: 15%;
+  right: 5%;
+  background: white;
+  border: 1px solid lightgray;
+  border-radius: 8px;
+  padding: 20px;
+  z-index: 1000;
+  max-width: 320px;
+}
+#profile-modal p {
+  margin: 5px 0;
+}
+#profile-modal button {
+  margin-top: 10px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="#" class="logo">RentCar</a>
+  <nav>
+      <a id="admin-btn" style="display:none;" href="admin-users.html">Admin Panel</a>
+    <a id="profile-btn" style="display:none;" href="profile.html">Profile</a>
+    <a id="login-btn">Login</a>
+    <a id="register-btn">Register</a>
+    <a id="logout-btn" style="display:none;">Log Out</a>
+  </nav>
+</header>
+
+<div id="register-modal">
+  <h3>Kayıt Ol</h3>
+  <input type="text" id="reg-username" placeholder="Kullanıcı Adı" />
+  <input type="password" id="reg-password" placeholder="Şifre" />
+  <input type="text" id="reg-customerName" placeholder="İsim" />
+  <input type="text" id="reg-customerSurname" placeholder="Soyisim" />
+  <input type="email" id="reg-email" placeholder="Email" />
+  <input type="tel" id="reg-phoneNumber" placeholder="Telefon" />
+  <input type="date" id="reg-dateOfBirth" placeholder="Doğum Tarihi" />
+  <button type="button" onclick="register()">Kayıt Ol</button>
+  <button type="button" onclick="closeRegister()">Kapat</button>
+</div>
+
+<div id="login-modal">
+  <h3>Giriş Yap</h3>
+  <input type="text" id="username" placeholder="Kullanıcı Adı" />
+  <input type="password" id="password" placeholder="Şifre" />
+  <button type="button" onclick="login()">Giriş Yap</button>
+  <button type="button" onclick="closeLogin()">Kapat</button>
+</div>
+
+<main>
+
+  <div class="search-container">
+    <input type="text" id="search-box" placeholder="Araç ara... (marka, model veya isim)" />
+  </div>
+
+  <div class="car-list" id="car-list"></div>
+
+  <form id="add-car-form">
+  <h3>Araç Ekle</h3>
+  <input name="carName" placeholder="Araç Adı" required />
+  <input name="brand" placeholder="Marka" required />
+  <input name="model" placeholder="Model" required />
+  <input name="year" type="number" placeholder="Yıl" required />
+  <input name="price" type="number" placeholder="Fiyat (₺)" required />
+  <input name="imageUrl" placeholder="Resim URL (opsiyonel)" />
+  <input name="color" placeholder="Renk" />
+  <input name="fuelType" placeholder="Yakıt Türü" />
+  <input name="transmission" placeholder="Vites" />
+  <input name="seats" type="number" placeholder="Koltuk Sayısı" />
+  <input name="licensePlate" placeholder="Plaka" />
+  <button type="submit">Ekle</button>
+</form>
+
+
+
+  
+</main>
+
+<script>
+  const loginBtn = document.getElementById('login-btn');
+  const logoutBtn = document.getElementById('logout-btn');
+  const loginModal = document.getElementById('login-modal');
+  const registerModal = document.getElementById('register-modal');
+  const registerBtn = document.getElementById('register-btn');
+  const addCarForm = document.getElementById('add-car-form');
+  const searchBox = document.getElementById('search-box');
+  let userRole = null;
+  let allCars = [];
+
+  loginBtn.addEventListener('click', () => {
+    loginModal.style.display = 'block';
+    registerModal.style.display = 'none';
+  });
+
+  registerBtn.addEventListener('click', () => {
+    registerModal.style.display = 'block';
+    loginModal.style.display = 'none';
+  });
+
+
+  function showProfileIfLoggedIn() {
+    const token = localStorage.getItem('token');
+    const profileBtn = document.getElementById('profile-btn');
+    if (token && !isTokenExpired(token)) {
+        profileBtn.style.display = 'inline';
+    } else {
+        profileBtn.style.display = 'none';
+    }
+}
+
+
+  function closeLogin() {
+    loginModal.style.display = 'none';
+  }
+  function closeRegister() {
+    registerModal.style.display = 'none';
+  }
+
+  function parseJwt(token) {
+    try {
+      return JSON.parse(atob(token.split('.')[1]));
+    } catch {
+      return {};
+    }
+  }
+
+  function getUserRoleFromToken(token) {
+    const decoded = parseJwt(token);
+    const roles = decoded.roles || decoded.role || decoded.authorities || decoded.authority;
+    if (!roles) return null;
+    if (typeof roles === 'string') {
+      return roles.includes('ADMIN') ? 'ADMIN' : 'USER';
+    } else if (Array.isArray(roles)) {
+      for (const r of roles) {
+        if (String(r).includes('ADMIN')) return 'ADMIN';
+      }
+      return 'USER';
+    } else if (typeof roles === 'object') {
+      if (Object.values(roles).some(v => String(v).includes('ADMIN'))) return 'ADMIN';
+    }
+    return 'USER';
+  }
+
+  function login() {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+
+    fetch('http://localhost:8080/customers/login', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ username, password })
+    })
+    .then(async res => {
+      if (!res.ok) {
+        let errorMsg = 'Giriş başarısız';
+        try {
+          const data = await res.json();
+          if (data.message) errorMsg = data.message;
+        } catch {}
+        throw new Error(errorMsg);
+      }
+      return res.json();
+    })
+    .then(data => {
+  localStorage.setItem('token', data.token);
+
+  // EKLENTİ: id ve role'ü sakla
+  if (data.user && typeof data.user.id !== 'undefined') {
+    localStorage.setItem('customerId', String(data.user.id));
+  }
+  if (data.user && data.user.role) {
+    localStorage.setItem('role', String(data.user.role)); 
+  }
+
+  const backendRole = (data.user && data.user.role) ? String(data.user.role) : '';
+  userRole = backendRole.includes('ADMIN') ? 'ADMIN' : 'USER';
+
+  alert('Giriş başarılı!');
+  loginModal.style.display = 'none';
+  loginBtn.style.display = 'none';
+  registerBtn.style.display = 'none';  
+  logoutBtn.style.display = 'inline';
+  const profileBtn = document.getElementById('profile-btn');
+  profileBtn.style.display = 'inline';
+  showAdminButtonIfAdmin();
+
+
+  if (userRole === 'ADMIN') {
+    addCarForm.style.display = 'block';
+  }
+
+  loadCars();
+})
+
+
+    .catch(e => {
+      alert('Giriş başarısız! Sebep: ' + e.message);
+      console.error('Login hatası:', e);
+    });
+  }
+
+  function register() {
+    const username = document.getElementById('reg-username').value.trim();
+    const password = document.getElementById('reg-password').value;
+    const customerName = document.getElementById('reg-customerName').value.trim();
+    const customerSurname = document.getElementById('reg-customerSurname').value.trim();
+    const email = document.getElementById('reg-email').value.trim();
+    const phoneNumber = document.getElementById('reg-phoneNumber').value.trim();
+    const dateOfBirth = document.getElementById('reg-dateOfBirth').value;
+
+fetch('http://localhost:8080/customers/register', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    username,
+    password,
+    customerName,
+    customerSurname,
+    email,
+    phoneNumber,
+    dateOfBirth
+  })
+})
+.then(async (res) => {
+  if (!res.ok) {
+    const data = await res.json();
+    let errorMsg = '';
+    if (typeof data === 'object') {
+      errorMsg = Object.values(data).join('\n');
+    } else if (data.message) {
+      errorMsg = data.message;
+    } else {
+      errorMsg = 'Kayıt başarısız';
+    }
+    throw new Error(errorMsg);
+  }
+  return res.text();
+})
+.then(() => {
+  alert('Kayıt başarılı! Şimdi giriş yapabilirsiniz.');
+  registerModal.style.display = 'none';
+})
+.catch((e) => {
+  alert('Kayıt başarısız! Sebep:\n' + e.message);
+  console.error('Kayıt hatası:', e);
+});
+
+  }
+
+  logoutBtn.addEventListener('click', () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('customerId');
+  localStorage.removeItem('role');
+    userRole = null;
+    alert('Çıkış yapıldı');
+    loginBtn.style.display = 'inline';
+    registerBtn.style.display = 'inline';  
+    logoutBtn.style.display = 'none';
+    addCarForm.style.display = 'none';
+
+  const profileBtn = document.getElementById('profile-btn');
+  profileBtn.style.display = 'none';
+  loadCars();
+  
+
+    document.getElementById('car-list').innerHTML = '';
+  });
+
+  function loadCars() {
+    fetch('http://localhost:8080/cars')
+    .then(res => {
+      if (!res.ok) throw new Error('Araçlar yüklenemedi. Stat: ' + res.status);
+      return res.json();
+    })
+    .then(data => {
+      allCars = Array.isArray(data) ? data : [];
+      renderCars(allCars);
+    })
+    .catch(err => {
+      console.error('Araçlar yüklenemedi:', err);
+      allCars = [];
+      renderCars(allCars);
+    });
+  }
+
+  function renderCars(cars) {
+  const carList = document.getElementById('car-list');
+  carList.innerHTML = '';
+
+  if (!cars || cars.length === 0) {
+    const no = document.createElement('p');
+    no.style.textAlign = 'center';
+    no.style.width = '100%';
+    no.textContent = 'Kayıtlı araç yok.';
+    carList.appendChild(no);
+    return;
+  }
+
+  cars.forEach(car => {
+    const card = document.createElement('div');
+    card.className = 'car-card';
+    
+    const brand = car.brand || '';
+    const model = car.model || '';
+    const name = car.carName || '';
+    const year = car.year || '';
+    const price = car.price != null ? car.price : '';
+    const imageUrl = car.imageUrl || '';
+
+    const displayTitle = name || '';
+
+    card.innerHTML = `
+      <img src="${imageUrl}" alt="${displayTitle}" />
+      <h3>${escapeHtml(displayTitle)}</h3>
+      <p>Yıl: ${escapeHtml(year)}</p>
+      <p>Fiyat: ${escapeHtml(price)}₺ / gün</p>
+      <p>Renk: ${escapeHtml(car.color || '')}</p>
+      <p>Yakıt: ${escapeHtml(car.fuelType || '')}</p>
+      <p>Vites: ${escapeHtml(car.transmission || '')}</p>
+      <p>Koltuk: ${escapeHtml(car.seats || '')}</p>
+      <p>Plaka: ${escapeHtml(car.licensePlate || '')}</p>
+      ${userRole === 'ADMIN' ? `<button class="delete-btn" data-id="${car.id}">Sil</button>` : ''}
+    
+    `;
+
+    card.querySelectorAll('img, h3, p').forEach(el => {
+      el.addEventListener('click', () => {
+        window.location.href = `car-detail.html?id=${car.id}`;
+      });
+    });
+
+    const deleteBtn = card.querySelector('.delete-btn');
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); 
+        deleteCar(car.id);
+      });
+    }
+
+    carList.appendChild(card);
+  });
+}
+function deleteCar(carId) {
+  const token = localStorage.getItem('token');
+  if (!token) return alert('Lütfen giriş yapın.');
+
+  if (!confirm('Bu aracı silmek istediğinize emin misiniz?')) return;
+
+  fetch(`http://localhost:8080/cars/${carId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': 'Bearer ' + token
+    }
+  })
+  .then(res => {
+    if (res.ok) {
+      alert('Araç silindi.');
+      loadCars();
+    } else if (res.status === 403) {
+      alert('Yetkiniz yok! Admin olmalısınız.');
+    } else {
+      res.text().then(t => {
+        console.error('Silme hatası:', t);
+        alert('Araç silinemedi. Stat: ' + res.status);
+      });
+    }
+  })
+  .catch(err => {
+    console.error(err);
+    alert('Bir hata oluştu.');
+  });
+}
+
+
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  searchBox.addEventListener('input', function () {
+    const q = this.value.trim().toLowerCase();
+    if (!q) {
+      renderCars(allCars);
+      return;
+    }
+    const filtered = allCars.filter(car => {
+      const brand = (car.brand || '').toString().toLowerCase();
+      const model = (car.model || car.carName || '').toString().toLowerCase();
+      const name = (car.carName || '').toString().toLowerCase();
+      return brand.includes(q) || model.includes(q) || name.includes(q);
+    });
+    renderCars(filtered);
+  });
+
+  addCarForm.addEventListener('submit', e => {
+  e.preventDefault();
+  const token = localStorage.getItem('token');
+  if (!token) return alert('Lütfen giriş yapın.');
+
+  const formData = new FormData(addCarForm);
+  const data = Object.fromEntries(formData.entries());
+
+  data.price = Number(data.price);
+  data.year = Number(data.year);
+  data.seats = data.seats ? Number(data.seats) : 0;
+
+  fetch('http://localhost:8080/cars', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + token,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data)
+  })
+  .then(res => {
+    if (res.ok) {
+      alert('Araç başarıyla eklendi.');
+      addCarForm.reset();
+      loadCars();
+    } else if (res.status === 403) {
+      alert('Yetkiniz yok! Admin olarak giriş yapmalısınız.');
+    } else {
+      res.text().then(t => {
+        console.error('Sunucu hata yanıtı:', t);
+        alert('Araç eklenemedi. Stat: ' + res.status);
+      });
+    }
+  })
+  .catch(err => {
+    alert('Bir hata oluştu.');
+    console.error(err);
+  });
+});
+
+
+  function isTokenExpired(token) {
+    const decoded = parseJwt(token);
+    if (!decoded.exp) return true;
+    const exp = decoded.exp * 1000;
+    return Date.now() > exp;
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+  const token = localStorage.getItem('token');
+  if (token && !isTokenExpired(token)) {
+    userRole = getUserRoleFromToken(token); 
+    if (userRole === 'ADMIN') {
+      addCarForm.style.display = 'block';
+      showAdminButtonIfAdmin(); 
+
+    }
+    loginBtn.style.display = 'none';
+    logoutBtn.style.display = 'inline';
+    registerBtn.style.display = 'none';
+
+  } else {
+    localStorage.removeItem('token');
+  }
+
+    showProfileIfLoggedIn();
+
+  loadCars();
+});
+
+
+
+function showAdminButtonIfAdmin() {
+  const token = localStorage.getItem('token');
+  const adminBtn = document.getElementById('admin-btn');
+  if (!token || isTokenExpired(token)) {
+    adminBtn.style.display = 'none';
+    return;
+  }
+  const role = getUserRoleFromToken(token);
+  if (role === 'ADMIN') {
+    adminBtn.style.display = 'inline';
+  } else {
+    adminBtn.style.display = 'none';
+  }
+}
+
+if (userRole === 'ADMIN') {
+  showAdminButtonIfAdmin();
+}
+
+logoutBtn.addEventListener('click', () => {
+  const adminBtn = document.getElementById('admin-btn');
+  adminBtn.style.display = 'none';
+});
+
+
+
+
+</script>
+
+</body>
+</html>
