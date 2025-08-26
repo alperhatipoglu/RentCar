@@ -306,7 +306,6 @@
     .then(data => {
   localStorage.setItem('token', data.token);
 
-  // EKLENTİ: id ve role'ü sakla
   if (data.user && typeof data.user.id !== 'undefined') {
     localStorage.setItem('customerId', String(data.user.id));
   }
@@ -642,4 +641,5 @@ logoutBtn.addEventListener('click', () => {
 
 </body>
 </html>
+
 
